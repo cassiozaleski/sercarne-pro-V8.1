@@ -1,0 +1,539 @@
+📕 MANUAL OPERACIONAL
+SCHLOSSER PRO — VERSÃO V8 (OFICIAL • FINAL)
+Plataforma: https://sercarne.com
+Versão: V8 — Primeira versão operacional completa
+Status: ATIVA / PRODUÇÃO
+Formato oficial: Google Docs
+Este documento é a CONSTITUIÇÃO do sistema
+
+CAPÍTULO 0 — PRINCÍPIO FUNDAMENTAL (INALTERÁVEL)
+O sistema existe para servir o Modelo de Negócio Schlosser PRO.
+Ferramentas, código, IAs e plataformas são descartáveis.
+As regras de negócio não são.
+Qualquer divergência entre sistema e este manual:
+❌ é erro de implementação
+❌ não é melhoria
+❌ deve ser corrigida
+
+CAPÍTULO 1 — OBJETIVO DESTE DOCUMENTO
+Definir de forma clara, técnica e inequívoca:
+Catálogo de produtos
+Regras de visibilidade e ordenação
+Precificação
+Rotas, dias de entrega e cutoff
+Estoque disponível por data
+Pedido, status, cancelamento
+Autonomia do vendedor e do supervisor
+Este documento existe para:
+Evitar interpretação errada
+Evitar perguntas repetidas
+Permitir troca de desenvolvedor, IA ou tecnologia sem perda de regra
+
+CAPÍTULO 2 — FONTES DA VERDADE (REGRA INEGOCIÁVEL)
+Google Sheets é a única fonte da verdade
+UND ≠ KG
+Preço sempre é R$/KG
+Cliente nunca vê tabela
+Peso é sempre estimativo
+Não existe reserva
+Pedido é o primeiro compromisso do sistema
+Supabase não define regras
+Código apenas executa o que está no Sheets
+
+CAPÍTULO 3 — ARQUITETURA OFICIAL (INDEPENDENTE DE TECNOLOGIA)
+A arquitetura lógica do projeto está documentada na planilha:
+🔗 Legenda / Objetivos sercarne.com
+https://docs.google.com/spreadsheets/d/12wPGal_n7PKYFGz9W__bXgK4mly2NbrEEGwTrIDCzcI/edit
+A aba “Legenda/Objetivos sercarne.com” define oficialmente:
+Stakeholders
+Responsabilidades
+Onde cada dado nasce
+Onde cada dado é consumido
+👉 Esta aba faz parte do sistema.
+
+CAPÍTULO 4 — CATÁLOGO DE PRODUTOS (VISIBILIDADE)
+REGRA DEFINITIVA V8
+Quem decide se o produto aparece na plataforma é a planilha.
+🔹 COLUNA AX (COLUNA 50) — EXIBIR NA PLATAFORMA
+TRUE / VERDADEIRO → produto aparece
+FALSE / FALSO → produto não aparece
+📌 Regras:
+Somente produtos com AX = TRUE aparecem
+Código do produto não é critério
+Front-end e back-end não podem ignorar essa coluna
+
+CAPÍTULO 5 — ORDEM DE EXIBIÇÃO NO CATÁLOGO
+REGRA AUTOMÁTICA (ANTES DE QUALQUER FILTRO)
+Produtos são exibidos do MAIOR para o MENOR estoque disponível.
+Objetivos:
+Vender o que tem mais disponibilidade
+Evitar ruptura
+Ajudar o vendedor sem ele decidir
+Filtros futuros (não implementados ainda):
+Marca
+Espécie
+Tipo de embalagem
+⚠️ Até existirem, somente a ordenação por estoque é aplicada.
+
+CAPÍTULO 6 — LÓGICA DE PREÇO (IMUTÁVEL)
+Fórmula única:
+VALOR ESTIMADO = UND × PESO MÉDIO × PREÇO POR KG
+
+UND → carrinho
+Peso médio → planilha
+Preço → tabela aplicada automaticamente
+❌ Nenhuma tela recalcula preço fora dessa lógica.
+
+CAPÍTULO 7 — TABELAS E REGRA DE VOLUME
+UND total no carrinho
+Tabela interna
+1
+TAB1
+2–9
+TAB0
+≥10
+TAB4
+
+Exibição ao cliente:
+Preço base sempre TAB3
+Cliente vê apenas:
+Preço R$/KG
+Benefício (%)
+❌ Nunca mostrar tabela
+❌ Nunca mostrar desconto em R$
+
+CAPÍTULO 8 — ROTAS, DIAS DE ENTREGA E CUTOFF
+Fonte da verdade
+Planilha: Google Sheets
+Aba: Rotas Dias De Entrega
+❌ Supabase não define rotas
+❌ Código não inventa regra
+Regras centrais
+Rota é definida pela CIDADE
+Cada cidade pertence a um grupo logístico
+Cada grupo define:
+Dias de entrega
+Horário de corte (cutoff)
+Cutoff (regra crítica)
+Sempre considerado no dia anterior à entrega
+Após o horário de corte:
+a próxima entrega válida é automaticamente pulada
+Usuário não pode forçar data inválida
+
+CAPÍTULO 9 — ESTOQUE DISPONÍVEL POR DATA (REGRA OFICIAL)
+Fórmula cumulativa
+Para cada data D:
+Disponível(D) = Estoque_Base_Hoje + Entradas(≤D) − Pedidos_Comprometidos(≤D)
+Onde:
+Estoque_Base_Hoje = valor do Sheets (coluna H)
+Entradas(≤D) = entradas até a data D
+Pedidos_Comprometidos(≤D) = pedidos com entrega até D e status comprometedor
+
+Status que COMPROMETEM estoque:
+PEDIDO ENVIADO
+PEDIDO CONFIRMADO
+SEU PEDIDO SAIU PARA ENTREGA
+Status que NÃO comprometem:
+CANCELADO
+PEDIDO ENTREGUE (histórico)
+📌 Ao cancelar um pedido, o estoque volta automaticamente (deixa de ser comprometido).
+
+Exemplo de validação (TESTE DE ACEITE)
+Produto 400010
+Estoque base hoje (Sheets): 2 UND
+Entradas:
++8 UND em 02/02/2026
++100 UND em 05/02/2026
+Pedidos:
+−2 UND com entrega 04/02/2026
+−5 UND com entrega 06/02/2026
+Resultado:
+Data
+Disponível
+30/01
+2
+31/01
+2
+02/02
+10
+03/02
+10
+04/02
+8
+05/02
+108
+06/02
+103
+07/02
+103
+
+
+CAPÍTULO 10 — PEDIDOS E STATUS (FLUXO OFICIAL)
+Status oficiais:
+PEDIDO ENVIADO
+PEDIDO CONFIRMADO
+SEU PEDIDO SAIU PARA ENTREGA
+PEDIDO ENTREGUE
+CANCELADO
+
+Permissões
+Níveis 1 a 5 (Cliente / Vendedor)
+Criar pedido (se houver estoque)
+Editar pedido somente enquanto = PEDIDO ENVIADO
+Cancelar pedido enquanto = PEDIDO ENVIADO
+❌ Não podem:
+Confirmar pedido
+Alterar após confirmado
+Níveis 6 a 10 (Supervisor / Admin)
+Confirmar pedido
+Avançar status até entregue
+Cancelar pedido em qualquer status (com motivo obrigatório)
+Ajustar preço após confirmado (ver capítulo 11)
+
+CAPÍTULO 11 — VOUCHER E AJUSTE DE PREÇO (COM PISO)
+Piso inegociável
+Preço final por KG nunca pode ser menor que TAB5 (coluna W).
+
+Voucher do vendedor
+Usado apenas em PEDIDO ENVIADO
+Aplicado por níveis 1–5
+Sempre respeitando o piso TAB5
+
+Ajuste de supervisor
+Pode ser feito após PEDIDO CONFIRMADO
+Apenas níveis 6–10
+Sempre com:
+motivo
+usuário
+data/hora
+Respeitando o piso TAB5
+Cliente nunca vê tabela, voucher ou ajuste — apenas o preço final.
+
+CAPÍTULO 12 — CANCELAMENTO
+Pode ocorrer em qualquer status (conforme permissão)
+Sempre exige:
+motivo
+usuário
+data/hora
+Pedido CANCELADO:
+não compromete estoque
+devolve disponibilidade automaticamente
+
+CAPÍTULO 13 — REGRA DE ALTERAÇÕES (ANTI-REGRESSÃO)
+❌ Proibido:
+Ajustar regra validada
+“Aproveitar” mudanças
+Criar exceções locais
+✅ Qualquer evolução:
+Nova versão (V9+)
+Documentada
+Aprovada
+
+🧱 ANEXO — CAMADAS INTOCÁVEIS
+Modelo de Negócio
+Este Manual V8
+Google Sheets (abas oficiais)
+Lógica UND × KG × R$/KG
+Estoque cumulativo por data
+Coluna AX (visibilidade)
+Piso TAB5
+Regra de status e permissões
+
+DECLARAÇÃO FINAL
+Este documento define integralmente a operação da plataforma Schlosser PRO V8.
+Qualquer divergência entre sistema e este manual é erro de implementação.
+
+
+
+
+
+📘 MANUAL SCHLOSSER PRO — V8
+CAPÍTULO 12 — MODO CONGELAMENTO E GOVERNANÇA DO SISTEMA
+Este capítulo é parte integrante do Manual Schlosser PRO V8 e tem força de regra absoluta.
+Ele se sobrepõe a qualquer interpretação técnica, sugestão de IA ou decisão pontual de desenvolvimento.
+
+12.1 OBJETIVO DESTE CAPÍTULO
+Definir como o sistema deve ser mantido, alterado e evoluído quando:
+o projeto entra em fase de lançamento
+existe prazo crítico de operação
+já há regras de negócio validadas
+a plataforma passa a ser usada no dia-a-dia real
+Este capítulo existe para:
+impedir regressões
+proteger o que já funciona
+permitir troca de desenvolvedor ou IA sem perda de lógica
+alinhar gestão, tecnologia e modelo de negócio em um único guia
+
+12.2 PRINCÍPIO FUNDAMENTAL (REGRA DE OURO)
+O SISTEMA EXECUTA O MANUAL.
+O MANUAL NÃO SE ADAPTA AO SISTEMA.
+Durante o Modo Congelamento:
+❌ Código não cria regra
+❌ Interface não inventa lógica
+❌ IA não interpreta o negócio
+❌ Desenvolvedor não “melhora” o modelo
+✅ O código apenas implementa fielmente o que está neste manual
+
+12.3 O QUE É O MODO CONGELAMENTO
+O Modo Congelamento é o estado oficial do projeto quando:
+o Manual V8 está validado
+o sistema está funcional
+o foco é estabilidade e operação
+Nesse modo:
+alterações são permitidas apenas para corrigir divergências
+qualquer mudança fora do escopo é proibida
+toda entrega exige validação externa
+
+12.4 PROIBIÇÕES ABSOLUTAS NO MODO CONGELAMENTO
+Durante o Modo Congelamento, é expressamente proibido:
+refatorar código funcional
+reorganizar arquivos
+alterar layout aprovado
+renomear variáveis que já funcionam
+“otimizar” performance
+alterar comportamento sem erro comprovado
+📌 Mesmo que a mudança pareça “melhor” tecnicamente, ela é proibida.
+
+12.5 FONTE ÚNICA DA VERDADE
+A única fonte da verdade do projeto é este Manual V8, incluindo:
+capítulos de regras de negócio
+explicação de colunas do Google Sheets
+lógica de estoque, rotas, preços e permissões
+capítulos complementares (ex.: WhatsApp V8.1)
+❌ Supabase não define regra
+❌ Front-end não define regra
+❌ ERP não define regra
+Todos apenas executam o que está documentado aqui.
+
+12.6 REGRAS IMUTÁVEIS DO SISTEMA (RESUMO EXECUTIVO)
+12.6.1 Pedido
+Todo pedido nasce como PEDIDO ENVIADO
+Não existe status “PENDENTE”
+Fluxo único:
+PEDIDO ENVIADO
+PEDIDO CONFIRMADO
+SEU PEDIDO SAIU PARA ENTREGA
+PEDIDO ENTREGUE
+
+12.6.2 Estoque
+Estoque é sempre por data
+Comprometem estoque:
+PEDIDO ENVIADO
+PEDIDO CONFIRMADO
+SAIU PARA ENTREGA
+PEDIDO ENTREGUE:
+não compromete
+vira apenas histórico
+PEDIDO CANCELADO:
+devolve estoque automaticamente
+❌ Nunca exibir código/SKU no lugar da quantidade disponível
+
+12.6.3 Catálogo
+Produto só aparece se COLUNA AX = TRUE
+Ordenação padrão:
+maior estoque disponível primeiro
+Preço exibido:
+sempre TAB3
+cliente vê apenas R$/KG + benefício (%)
+nunca vê nome de tabela
+
+12.6.4 Permissões
+Usuários nível 1–5:
+editar/cancelar somente em PEDIDO ENVIADO
+Usuários nível 6–10:
+confirmar
+avançar status
+cancelar em qualquer status
+
+12.6.5 Cancelamento
+Cancelamento exige:
+motivo
+usuário responsável
+data e hora
+Deve ser registrado no banco
+Status final: CANCELADO
+
+12.6.6 Peso Médio
+Produto com peso médio = 0:
+bloqueia envio do pedido
+mensagem clara ao usuário
+Bloqueio ocorre no envio, não apenas visual
+
+12.6.7 WhatsApp Obrigatório (V8.1)
+Todo pedido digitado gera WhatsApp automático ao cliente
+WhatsApp é ciência, não confirmação
+Não altera pedido
+Mesmo fluxo para B2B e B2C
+
+12.6.8 Realtime
+Websocket é opcional
+Se falhar:
+sistema continua funcionando
+fallback via fetch
+sem travar interface
+sem erro em loop
+
+12.7 FORMA OBRIGATÓRIA DE ENTREGA (DEV / IA)
+Qualquer alteração durante o Modo Congelamento deve conter:
+A) Lista completa de arquivos alterados
+B) Patch/diff completo (antes/depois)
+C) Checklist de aderência ao Manual V8
+D) Teste de aceite passo a passo
+❌ Publicação automática é proibida
+❌ Ajustes posteriores não são aceitos
+
+12.8 VALIDAÇÃO E RESPONSABILIDADE
+Nenhuma alteração entra em produção sem validação externa.
+Se houver regressão:
+a versão é revertida
+o Modo Congelamento permanece ativo
+a correção ocorre de forma pontual
+
+12.9 DECLARAÇÃO FINAL
+“Estabilidade é prioridade absoluta.
+A evolução do sistema só é válida
+quando não apaga o que já funciona.”
+
+
+Você está atuando como DESENVOLVEDOR(A) DE SOFTWARE do projeto
+SCHLOSSER PRO — sercarne.com.
+
+⚠️ REGRA ABSOLUTA:
+Você NÃO TEM autonomia para alterar regras de negócio.
+Você executa fielmente o MANUAL OPERACIONAL SCHLOSSER PRO V8
+e o CAPÍTULO WHATSAPP V8.1.
+
+==============================
+REGRAS FUNDAMENTAIS (IMUTÁVEIS)
+==============================
+
+1) Google Sheets é a fonte da verdade
+2) Pedido é o primeiro compromisso (não existe reserva)
+3) UND ≠ KG
+4) Preço sempre R$/KG
+5) Cliente nunca vê tabela
+6) WhatsApp NÃO é sistema
+
+==============================
+WHATSAPP — REGRA OBRIGATÓRIA (V8.1)
+==============================
+
+- Todo pedido digitado por VENDEDOR para um CLIENTE
+  DEVE disparar WhatsApp automático de ciência ao cliente.
+- Esse disparo é OBRIGATÓRIO.
+- O vendedor NÃO pode desativar o envio.
+
+WhatsApp:
+- NÃO valida pedido
+- NÃO confirma pedido
+- NÃO altera pedido
+- NÃO muda status
+- NÃO escreve no banco
+
+A ausência de resposta do cliente:
+- NÃO invalida o pedido
+- NÃO bloqueia o fluxo
+
+==============================
+REGRAS DE DISPARO
+==============================
+
+- Pedido criado por VENDEDOR → WhatsApp obrigatório (template B2B)
+- Pedido criado por CLIENTE → WhatsApp informativo (template B2C)
+- Disparo ocorre após:
+  - PEDIDO ENVIADO (obrigatório)
+  - PEDIDO CONFIRMADO (opcional)
+
+Falha no envio do WhatsApp:
+- NÃO cancela pedido
+- NÃO altera status
+- NÃO afeta estoque
+
+==============================
+PROIBIÇÕES EXPRESSAS
+==============================
+
+Você NÃO pode:
+- Criar botão “Confirmar pelo WhatsApp”
+- Alterar status por resposta do WhatsApp
+- Esperar resposta do cliente para seguir fluxo
+- Criar lógica de retorno WhatsApp → sistema
+- Alterar templates sem autorização
+
+==============================
+METODOLOGIA OBRIGATÓRIA
+==============================
+
+Sempre responda em 6 blocos:
+
+1) Entendimento do pedido
+2) Escopo permitido
+3) Escopo proibido
+4) Arquivos que serão alterados
+5) Patch/diff completo
+6) Teste de aceite
+
+Se houver qualquer dúvida ou conflito:
+PARE e peça confirmação antes de implementar.
+
+==============================
+DECLARAÇÃO FINAL OBRIGATÓRIA
+==============================
+
+Antes de entregar qualquer código, você deve afirmar:
+
+“Esta implementação está 100% aderente ao Manual V8
+e ao Capítulo WhatsApp V8.1, sem regressão.”
+🧭 FLUXO VISUAL — WHATSAPP OBRIGATÓRIO (APRESENTAÇÃO INTERNA)
+👉 Esse fluxo é ideal para:
+apresentar para vendedores
+alinhar supervisão
+mostrar que WhatsApp protege a empresa
+evitar discussão futura
+🧱 FLUXO MACRO (VISÃO EXECUTIVA)
+VENDEDOR
+   |
+   | cria pedido no sistema
+   v
+PEDIDO ENVIADO (sercarne.com)
+   |
+   | sistema identifica: pedido B2B?
+   v
+SIM ────────────────► DISPARA WHATSAPP (CIÊNCIA)
+   |                      |
+   |                      | (cliente recebe aviso)
+   |                      | (resposta não altera nada)
+   |
+   v
+PEDIDO SEGUE FLUXO NORMAL
+(CONFIRMADO → SAIU → ENTREGUE)
+📌 WhatsApp não trava, não valida, não decide.
+🧠 FLUXO DETALHADO (OPERACIONAL)
+1) Vendedor lança pedido
+2) Sistema salva pedido (PEDIDO ENVIADO)
+3) Sistema verifica:
+   - pedido criado por vendedor? → SIM
+4) Sistema monta mensagem padrão B2B
+5) Sistema envia WhatsApp ao cliente
+6) Pedido continua normalmente
+7) Supervisor revisa / confirma
+📲 FLUXO DE RESPOSTA DO CLIENTE (IMPORTANTE)
+Cliente responde no WhatsApp
+          |
+          v
+NADA MUDA AUTOMATICAMENTE
+          |
+          v
+Ação HUMANA (se necessário):
+- contato com vendedor
+- ajuste/cancelamento NO SISTEMA
+🛑 FLUXOS PROIBIDOS (PARA APRESENTAÇÃO)
+❌ Pedido aguardando “OK” do WhatsApp
+❌ WhatsApp confirmando pedido
+❌ WhatsApp alterando pedido
+❌ WhatsApp mudando status
+❌ WhatsApp virando prova única
+🎯 FRASE-CHAVE PARA O TIME (USE ESSA)
+“O pedido é feito no sistema.
+O WhatsApp serve apenas para deixar o cliente ciente.”
+
